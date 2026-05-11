@@ -4,8 +4,8 @@ const stealth = require('puppeteer-extra-plugin-stealth');
 chromium.use(stealth());
 
 const ITEMS_PER_PAGE  = 18;
-const MAX_PAGES_MAIN  = 10;
-const MAX_PAGES_REF   = 5;
+const MAX_PAGES_MAIN  = 5;
+const MAX_PAGES_REF   = 3;
 
 // ─── ユーティリティ ────────────────────────────────────────────
 

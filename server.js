@@ -40,7 +40,7 @@ app.get('/check', async (req, res) => {
   res.flushHeaders();
 
   const send = (data) => { if (!res.writableEnded) res.write(`data: ${JSON.stringify(data)}\n\n`); };
-  const keepalive = setInterval(() => { if (!res.writableEnded) res.write(': keepalive\n\n'); }, 15000);
+  const keepalive = setInterval(() => { if (!res.writableEnded) res.write(': keepalive\n\n'); }, 5000);
 
   isRunning = true;
   const t0 = Date.now();
