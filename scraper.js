@@ -164,9 +164,8 @@ async function scanOneGuestCount({ area, checkin, checkout, adults, targetId, is
 }
 
 function buildGuestCounts(maxGuests) {
-  const refs = [2, 4, 6, 8, 10].filter(n => n <= maxGuests);
-  if (!refs.includes(maxGuests)) refs.push(maxGuests);
-  return [...new Set(refs)].sort((a, b) => a - b);
+  const small = [2, 4].filter(n => n < maxGuests);
+  return [...new Set([...small, maxGuests])].sort((a, b) => a - b);
 }
 
 async function checkRankingAll({ area, checkin, checkout, listingUrl }, onProgress) {
