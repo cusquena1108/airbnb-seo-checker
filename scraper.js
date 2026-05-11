@@ -55,7 +55,7 @@ async function getListingInfo(listingUrl) {
   try {
     const ctx  = await newContext(browser);
     const page = await ctx.newPage();
-    await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await sleep(3000);
     await scrollSlow(page, 6);
 
@@ -125,7 +125,7 @@ async function scanOneGuestCount({ area, checkin, checkout, adults, targetId, is
   try {
     for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
       if (onProgress) onProgress({ type: 'page_scan', adults, pageNum, maxPages });
-      await page.goto(buildSearchUrl(area, checkin, checkout, adults, pageNum), { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.goto(buildSearchUrl(area, checkin, checkout, adults, pageNum), { waitUntil: 'domcontentloaded', timeout: 60000 });
       await sleep(1800 + Math.random() * 1000);
 
       try {
@@ -180,7 +180,7 @@ async function checkRankingAll({ area, checkin, checkout, listingUrl }, onProgre
       const ctx  = await newContext(browser);
       const page = await ctx.newPage();
       try {
-        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.goto(listingUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await sleep(2500);
         return await page.evaluate(() => {
           const top = document.body.innerText.slice(0, 3000);
