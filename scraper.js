@@ -197,12 +197,11 @@ async function checkRankingAll({ area, checkin, checkout, listingUrl }, onProgre
     const guestCounts = buildGuestCounts(maxGuests);
     if (onProgress) onProgress({ type: 'listing_info', maxGuests, guestCounts, total: guestCounts.length });
 
-    const results = await Promise.all(
-      guestCounts.map((adults) =>
-        scanOneGuestCount({ area, checkin, checkout, adults, targetId, isMax: adults === maxGuests, browser, onProgress: p => onProgress && onProgress(p) })
-          .then(r => ({ adults, isMax: adults === maxGuests, ...r }))
-      )
-    );
+    const results = [];
+    for (const adults of guestCounts) {
+      const r = await scanOneGuestCount({ area, checkin, checkout, adults, targetId, isMax: adults === maxGuests, browser, onProgress: p => onProgress && onProgress(p) });
+      results.push({ adults, isMax: adults === maxGuests, ...r });
+    }
 
     return { maxGuests, guestCounts, results };
   } finally {
