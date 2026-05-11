@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airbnb SEO ランクチェッカー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Segoe UI', sans-serif;
+      background: #f2f2f2;
+      min-height: 100vh;
+      padding: 40px 16px 60px;
+      color: #222;
+    }
+
+    .wrap { max-width: 600px; margin: 0 auto; }
+
+    /* ヘッダー */
+    header { text-align: center; margin-bottom: 28px; }
+    header .logo { font-size: 22px; font-weight: 800; color: #FF385C; letter-spacing: -0.5px; }
+    header .sub  { font-size: 13px; color: #888; margin-top: 4px; }
+
+    /* カード共通 */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      padding: 28px 32px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: #aaa; margin-bottom: 14px;
+    }
+
+    /* Step 1: URL入力 */
+    .url-row { display: flex; gap: 10px; }
+
+    .url-input {
+      flex: 1;
+      padding: 11px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 14px; color: #222;
+      transition: border-color 0.2s;
+    }
+    .url-input:focus { outline: none; border-color: #FF385C; }
+    .url-input::placeholder { color: #bbb; }
+
+    .btn-fetch {
+      padding: 11px 20px;
+      background: #222; color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-fetch:hover:not(:disabled) { background: #444; }
+    .btn-fetch:active:not(:disabled) { transform: scale(0.97); }
+    .btn-fetch:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* Step 2: リスティング情報 */
+    #listingCard { display: none; }
+
+    .listing-info {
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+
+    .listing-thumb {
+      width: 64px; height: 64px; border-radius: 10px;
+      background: #f5f5f5; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+
+    .listing-detail { flex: 1; min-width: 0; }
+    .listing-title {
+      font-size: 15px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 6px;
+    }
+
+    .listing-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #f5f5f5; border-radius: 20px;
+      font-size: 12px; padding: 3px 10px; color: #555;
+    }
+    .tag.red { background: #fff0f2; color: #FF385C; font-weight: 700; }
+
+    /* 空き日程ラジオ */
+    .date-options { display: flex; flex-direction: column; gap: 8px; }
+
+    .date-option {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 12px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .date-option:hover { border-color: #FF385C; background: #fff8f9; }
+    .date-option.selected { border-color: #FF385C; background: #fff0f2; }
+
+    .date-option input[type=radio] { display: none; }
+
+    .date-dot {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid #ddd; flex-shrink: 0;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .date-option.selected .date-dot { border-color: #FF385C; background: #FF385C; }
+
+    .date-text { flex: 1; }
+    .date-main { font-size: 14px; font-weight: 600; }
+    .date-sub  { font-size: 12px; color: #aaa; margin-top: 1px; }
+
+    .no-dates {
+      font-size: 13px; color: #aaa;
+      padding: 12px 0; line-height: 1.7;
+    }
+
+    .listing-link {
+      color: #FF385C; text-decoration: underline;
+      text-underline-offset: 2px; font-weight: 600;
+    }
+    .listing-link:hover { color: #e0284f; }
+
+    /* Step 3: 検索条件 */
+    #searchCard { display: none; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .field-group { display: flex; flex-direction: column; gap: 5px; }
+
+    .field-label {
+      font-size: 11px; font-weight: 700;
+      color: #aaa; text-transform: uppercase; letter-spacing: 0.6px;
+    }
+
+    .field-input {
+      padding: 10px 12px;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 10px;
+      font-size: 14px; color: #222;
+      transition: border-color 0.2s;
+    }
+    .field-input:focus { outline: none; border-color: #FF385C; }
+
+    .btn-search {
+      width: 100%; padding: 14px;
+      background: #FF385C; color: white;
+      border: none; border-radius: 14px;
+      font-size: 15px; font-weight: 800;
+      cursor: pointer; margin-top: 16px;
+      letter-spacing: 0.3px;
+      transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 12px rgba(255,56,92,0.3);
+    }
+    .btn-search:hover:not(:disabled)  { background: #e0284f; }
+    .btn-search:active:not(:disabled) { transform: scale(0.98); }
+    .btn-search:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+
+    /* プログレス */
+    #progressCard { display: none; }
+
+    .progress-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .progress-label { font-size: 14px; font-weight: 600; }
+    .progress-pct   { font-size: 13px; color: #FF385C; font-weight: 700; }
+
+    .progress-track {
+      background: #f0f0f0; border-radius: 99px;
+      height: 6px; overflow: hidden; margin-bottom: 16px;
+    }
+    .progress-fill {
+      height: 100%; background: #FF385C;
+      border-radius: 99px; transition: width 0.5s ease; width: 0%;
+    }
+
+    .steps { display: flex; flex-direction: column; gap: 6px; }
+    .step  {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: #bbb;
+      padding: 6px 10px; border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .step.active { background: #fff5f7; color: #FF385C; font-weight: 600; }
+    .step.done   { color: #22c55e; }
+    .step-icon   { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+
+    /* 結果 */
+    #resultCard { display: none; }
+
+    .result-card-subtitle {
+      font-size: 11px; color: #aaa; margin-bottom: 4px;
+    }
+
+    .result-card-title {
+      font-size: 15px; font-weight: 800; color: #FF385C;
+      letter-spacing: -0.3px; margin-bottom: 14px;
+    }
+
+    .result-listing-title {
+      font-size: 14px; font-weight: 700; color: #222;
+      margin-bottom: 8px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .result-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+
+    .result-conditions {
+      font-size: 12px; color: #666;
+      background: #f8f8f8; border-radius: 8px;
+      padding: 8px 12px; margin-bottom: 14px;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .result-conditions span { display: flex; gap: 6px; }
+    .result-conditions .rc-label { color: #aaa; min-width: 60px; }
+
+    .result-meta {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px; font-size: 13px; color: #888;
+    }
+    .result-meta strong { color: #222; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left; padding: 6px 12px;
+      font-size: 11px; font-weight: 700;
+      color: #bbb; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    tbody tr { border-bottom: 1px solid #f9f9f9; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.is-max td:first-child { position: relative; }
+
+    .is-max { background: #fff8f9; }
+    td { padding: 12px 12px; font-size: 14px; vertical-align: middle; }
+
+    .guests-cell { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+    .pill {
+      font-size: 9px; font-weight: 800; letter-spacing: 0.4px;
+      padding: 2px 7px; border-radius: 99px;
+      text-transform: uppercase;
+    }
+    .pill-max { background: #FF385C; color: white; }
+    .pill-ref { background: #f0f0f0; color: #aaa; }
+
+    .rank-found   { font-weight: 700; color: #111; }
+    .rank-outer   { color: #ccc; font-size: 13px; }
+
+    .detail-cell  { font-size: 12px; color: #aaa; }
+
+    .result-footer { margin-top: 12px; font-size: 12px; color: #ccc; text-align: right; }
+
+    /* エラー */
+    .error-banner {
+      background: #fff1f2; border: 1px solid #fca5a5;
+      border-radius: 12px; padding: 14px 16px;
+      font-size: 13px; color: #dc2626; display: none;
+      margin-bottom: 16px;
+    }
+
+    /* フェードイン */
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="sub">～airbnbであなたのリスティングは何番目？～</div>
+    <div class="logo">Airbnb SEO Rank Checker</div>
+  </header>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- Step 1: URL入力 -->
+  <div class="card">
+    <div class="card-title">Step 1 — リスティングURL</div>
+    <div class="url-row">
+      <input class="url-input" id="listingUrl" type="url"
+        placeholder="https://www.airbnb.jp/rooms/12345678" />
+      <button class="btn-fetch" id="fetchBtn">情報取得</button>
+    </div>
+  </div>
+
+  <!-- Step 2: リスティング情報 + 日程選択 -->
+  <div class="card fade-in" id="listingCard">
+    <div class="card-title">Step 2 — リスティング情報</div>
+
+    <div class="listing-info" id="listingInfo">
+      <div class="listing-thumb">🏠</div>
+      <div class="listing-detail">
+        <div class="listing-title" id="listingTitle">—</div>
+        <div class="listing-tags" id="listingTags"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;">
+      <div style="margin-top:20px;"></div>
+      <div class="date-options" id="dateOptions"></div>
+    </div>
+  </div>
+
+  <!-- Step 3: 検索条件 & 実行 -->
+  <div class="card fade-in" id="searchCard">
+    <div class="card-title">Step 3 — 検索条件</div>
+
+    <div class="field-row" style="margin-bottom:12px;">
+      <div class="field-group" style="grid-column: 1/-1;">
+        <label class="field-label" for="area">エリア</label>
+        <input class="field-input" id="area" type="text" placeholder="例: 板橋区" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label" for="checkin">チェックイン</label>
+        <input class="field-input" id="checkin" type="date" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="checkout">チェックアウト</label>
+        <input class="field-input" id="checkout" type="date" />
+      </div>
+    </div>
+
+    <button class="btn-search" id="searchBtn">SEO順位を検索する</button>
+  </div>
+
+  <!-- プログレス -->
+  <div class="card fade-in" id="progressCard">
+    <div class="progress-header">
+      <span class="progress-label" id="progressLabel">準備中...</span>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="steps" id="stepList"></div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="card fade-in" id="resultCard">
+    <div class="result-card-subtitle">～airbnbであなたのリスティングは何番目？～</div>
+    <div class="result-card-title">Airbnb SEO Rank Checker 検索結果</div>
+    <div class="result-listing-title" id="resultListingTitle"></div>
+    <div class="result-tags" id="resultListingTags"></div>
+    <div class="result-conditions" id="resultConditions"></div>
+    <div class="result-meta" id="resultMeta"></div>
+    <table>
+      <thead><tr><th>人数</th><th>順位</th><th>ページ内位置</th></tr></thead>
+      <tbody id="resultBody"></tbody>
+    </table>
+    <div class="result-footer" id="resultFooter"></div>
+  </div>
+</div>
+
+<script>
+  // ─── DOM ───────────────────────────────────────────────────────
+  const listingUrlInput = document.getElementById('listingUrl');
+  const fetchBtn        = document.getElementById('fetchBtn');
+  const listingCard     = document.getElementById('listingCard');
+  const listingTitle    = document.getElementById('listingTitle');
+  const listingTags     = document.getElementById('listingTags');
+  const dateOptions     = document.getElementById('dateOptions');
+  const searchCard      = document.getElementById('searchCard');
+  const areaInput       = document.getElementById('area');
+  const checkinInput    = document.getElementById('checkin');
+  const checkoutInput   = document.getElementById('checkout');
+  const searchBtn       = document.getElementById('searchBtn');
+  const progressCard    = document.getElementById('progressCard');
+  const progressLabel   = document.getElementById('progressLabel');
+  const progressPct     = document.getElementById('progressPct');
+  const progressFill    = document.getElementById('progressFill');
+  const stepList        = document.getElementById('stepList');
+  const resultCard      = document.getElementById('resultCard');
+  const resultMeta      = document.getElementById('resultMeta');
+  const resultBody      = document.getElementById('resultBody');
+  const resultFooter    = document.getElementById('resultFooter');
+  const errorBanner     = document.getElementById('errorBanner');
+
+  let stepEls  = {};
+  let maxGuests = null;
+  let listingInfo = { title: '', location: '', maxGuests: null };
+
+  // ─── ユーティリティ ────────────────────────────────────────────
+  function showError(msg) {
+    errorBanner.textContent = msg;
+    errorBanner.style.display = 'block';
+  }
+  function hideError() { errorBanner.style.display = 'none'; }
+
+  function setProgress(pct, label) {
+    progressFill.style.width  = `${pct}%`;
+    progressPct.textContent   = `${Math.round(pct)}%`;
+    progressLabel.textContent = label;
+  }
+
+  function fmtDate(str) {
+    const d = new Date(str);
+    const days = ['日','月','火','水','木','金','土'];
+    return `${d.getMonth()+1}/${d.getDate()}(${days[d.getDay()]})`;
+  }
+
+  // ─── Step 2: 情報取得 ──────────────────────────────────────────
+  fetchBtn.addEventListener('click', async () => {
+    const url = listingUrlInput.value.trim();
+    if (!url) return;
+    hideError();
+
+    fetchBtn.disabled     = true;
+    fetchBtn.textContent  = '取得中...';
+    listingCard.style.display = 'none';
+    searchCard.style.display  = 'none';
+
+    try {
+      const res  = await fetch(`/listing-info?url=${encodeURIComponent(url)}`);
+      const data = await res.json();
+
+      if (!res.ok) { showError(data.error || '情報取得に失敗しました'); return; }
+
+      // リスティング情報を保存
+      listingInfo = { title: data.title || '', location: data.location || '', maxGuests: data.maxGuests || null };
+
+      // タイトル
+      listingTitle.textContent = data.title || '（タイトル取得失敗）';
+
+      // タグ（場所・最大人数）
+      listingTags.innerHTML = '';
+      if (data.location) {
+        listingTags.innerHTML += `<span class="tag">📍 ${data.location}</span>`;
+      }
+      if (data.maxGuests) {
+        maxGuests = data.maxGuests;
+        listingTags.innerHTML += `<span class="tag red">👥 最大 ${data.maxGuests}名</span>`;
+      }
+
+      // 空き日程
+      dateOptions.innerHTML = '';
+      // 空き日程は自動取得しない — リスティングリンクを表示
+      const listingHref = listingUrlInput.value.trim();
+      dateOptions.innerHTML = `
+        <div class="no-dates">
+          空き日程は
+          <a href="${listingHref}" target="_blank" rel="noopener" class="listing-link">リスティングページ</a>
+          で確認して、下の日程欄に手動で入力してください。
+        </div>`;
+      const d1 = new Date(); d1.setDate(d1.getDate() + 1);
+      const d2 = new Date(); d2.setDate(d2.getDate() + 2);
+      checkinInput.value  = d1.toISOString().split('T')[0];
+      checkoutInput.value = d2.toISOString().split('T')[0];
+
+      // チェックイン変更時にチェックアウトを自動調整
+      checkinInput.onchange = () => {
+        if (checkoutInput.value && checkoutInput.value <= checkinInput.value) {
+          const next = new Date(checkinInput.value);
+          next.setDate(next.getDate() + 1);
+          checkoutInput.value = next.toISOString().split('T')[0];
+        }
+      };
+
+      // エリア自動入力
+      if (data.location) areaInput.value = data.location;
+
+      listingCard.style.display = 'block';
+      searchCard.style.display  = 'block';
+
+    } catch (e) {
+      showError('通信エラー: ' + e.message);
+    } finally {
+      fetchBtn.disabled    = false;
+      fetchBtn.textContent = '情報取得';
+    }
+  });
+
+  // ─── Step 3: 順位検索 ─────────────────────────────────────────
+  searchBtn.addEventListener('click', () => {
+    const area       = areaInput.value.trim();
+    const checkin    = checkinInput.value;
+    const checkout   = checkoutInput.value;
+    const listingUrl = listingUrlInput.value.trim();
+
+    if (!area || !checkin || !checkout || !listingUrl) {
+      showError('エリア・日程・URLを全て入力してください');
+      return;
+    }
+    hideError();
+
+    searchBtn.disabled    = true;
+    searchBtn.textContent = '検索中...';
+    progressCard.style.display = 'block';
+    resultCard.style.display   = 'none';
+    stepList.innerHTML = '';
+    resultBody.innerHTML = '';
+    stepEls = {};
+
+    setProgress(2, '準備中...');
+
+    const params = new URLSearchParams({ area, checkin, checkout, listingUrl });
+    const es = new EventSource(`/check?${params.toString()}`);
+
+    es.onmessage = (evt) => {
+      const d = JSON.parse(evt.data);
+
+      if (d.type === 'fetching_listing') {
+        setProgress(5, d.message);
+
+      } else if (d.type === 'listing_info') {
+        setProgress(8, `最大 ${d.maxGuests}名を確認 — ${d.total}パターン並列検索開始`);
+        // ステップリスト構築
+        d.guestCounts.forEach(n => {
+          const isMax = n === d.maxGuests;
+          const el = document.createElement('div');
+          el.className = 'step';
+          el.innerHTML = `<span class="step-icon">◦</span>
+            ${n}名 ${isMax ? '<span class="pill pill-max">MAX</span>' : ''}`;
+          stepList.appendChild(el);
+          stepEls[n] = el;
+        });
+
+      } else if (d.type === 'page_scan') {
+        const el = stepEls[d.adults];
+        if (el) {
+          el.classList.add('active');
+          el.querySelector('.step-icon').textContent = '↻';
+          el.innerHTML = `<span class="step-icon">↻</span>
+            ${d.adults}名 — ${d.pageNum}/${d.maxPages}ページ目
+            ${d.adults === maxGuests ? '<span class="pill pill-max">MAX</span>' : ''}`;
+        }
+        // プログレス概算
+        const doneCount = Object.values(stepEls).filter(e => e.classList.contains('done')).length;
+        setProgress(10 + (doneCount / Object.keys(stepEls).length) * 85, `${d.adults}名を検索中...`);
+
+      } else if (d.type === 'result') {
+        setProgress(100, '完了');
+        es.close();
+        stepList.style.display = 'none';
+
+        // 結果ヘッダー
+        resultCard.style.display = 'block';
+
+        // タイトル
+        const resultListingTitle = document.getElementById('resultListingTitle');
+        resultListingTitle.textContent = listingInfo.title || '—';
+
+        // バッジ
+        const resultListingTags = document.getElementById('resultListingTags');
+        resultListingTags.innerHTML = '';
+        if (listingInfo.location) resultListingTags.innerHTML += `<span class="tag">📍 ${listingInfo.location}</span>`;
+        if (listingInfo.maxGuests) resultListingTags.innerHTML += `<span class="tag red">👥 最大 ${listingInfo.maxGuests}名</span>`;
+
+        // 検索条件
+        const area     = areaInput.value.trim();
+        const checkin  = checkinInput.value;
+        const checkout = checkoutInput.value;
+        const now      = new Date();
+        const pad      = n => String(n).padStart(2, '0');
+        const datetimeStr = `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        document.getElementById('resultConditions').innerHTML = `
+          <span><span class="rc-label">検索条件</span>${area}　${fmtDate(checkin)}〜${fmtDate(checkout)}</span>
+          <span><span class="rc-label">検索日時</span>${datetimeStr}</span>`;
+
+        resultMeta.innerHTML = `<strong>${d.maxGuests}名</strong>（最大）を含む ${d.results.length} パターンの結果`;
+
+        d.results.forEach(r => {
+          const tr = document.createElement('tr');
+          if (r.isMax) tr.classList.add('is-max');
+          const pill = r.isMax ? '<span class="pill pill-max">MAX</span>' : '';
+          const totalLabel = r.searchTotal && r.searchTotal <= 1000
+            ? `${r.searchTotal}件中`
+            : '1000件超';
+          const rankCell = r.found
+            ? `<td class="rank-found">通算${r.totalPosition}番目表示 / ${totalLabel}</td>`
+            : `<td class="rank-outer">圏外</td>`;
+          const detailCell = r.found
+            ? `<td class="detail-cell">${r.page}ページ目 ${r.positionInPage}番目</td>`
+            : `<td class="detail-cell">${r.reason || ''}</td>`;
+          tr.innerHTML = `<td><div class="guests-cell">${r.adults}名 ${pill}</div></td>${rankCell}${detailCell}`;
+          resultBody.appendChild(tr);
+        });
+
+        resultFooter.textContent = `完了 — 約${d.elapsed}秒`;
+        searchBtn.disabled    = false;
+        searchBtn.textContent = 'SEO順位を検索する';
+
+      } else if (d.type === 'error') {
+        es.close();
+        showError(d.message);
+        searchBtn.disabled    = false;
+        searchBtn.textContent = 'SEO順位を検索する';
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      showError('通信エラーが発生しました。');
+      searchBtn.disabled    = false;
+      searchBtn.textContent = 'SEO順位を検索する';
+    };
+  });
+</script>
+</body>
+</html>
