@@ -48,8 +48,10 @@ async function collectIds(page) {
 
 // ─── リスティング情報取得 ───────────────────────────────────────
 
+const CHROMIUM_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'];
+
 async function getListingInfo(listingUrl) {
-  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
+  const browser = await chromium.launch({ headless: true, args: CHROMIUM_ARGS });
   try {
     const ctx  = await newContext(browser);
     const page = await ctx.newPage();
@@ -171,7 +173,7 @@ async function checkRankingAll({ area, checkin, checkout, listingUrl }, onProgre
   const targetId = extractListingId(listingUrl);
   if (!targetId) throw new Error('リスティングURLからIDを取得できませんでした。');
 
-  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+  const browser = await chromium.launch({ headless: true, args: CHROMIUM_ARGS });
   try {
     if (onProgress) onProgress({ type: 'fetching_listing', message: 'リスティング情報を取得中...' });
     const maxGuests = await (async () => {
